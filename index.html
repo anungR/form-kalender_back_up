@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Form Undangan Kalender</title>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6; /* bg-gray-100 */
+      padding: 1rem; /* p-4 */
+    }
+    .container-wrapper {
+      background-color: #ffffff; /* bg-white */
+      padding: 2rem; /* p-8 */
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+      width: 100%; /* w-full */
+      max-width: 400px; /* max-w-md */
+      margin: 2rem auto; /* Menambahkan margin auto untuk centering horizontal dan margin vertikal */
+    }
+    .calendar-embed-container {
+        margin-top: 2rem;
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        max-width: 800px; /* Lebih lebar untuk kalender */
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .calendar-embed-container iframe {
+        width: 100%;
+        height: 600px; /* Tinggi default, bisa disesuaikan */
+        border: 0;
+        border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="container-wrapper">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Form Undangan Acara</h2>
+    <form id="calendarForm" class="space-y-4">
+      <div>
+        <label for="adminEmail" class="block text-sm font-medium text-gray-700">Email Admin (Pengirim)</label>
+        <input type="email" id="adminEmail" name="adminEmail" placeholder="admin@organisasi.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+      </div>
+
+      <div>
+        <label for="summary" class="block text-sm font-medium text-gray-700">Judul Acara</label>
+        <input type="text" id="summary" name="summary" placeholder="Rapat Koordinasi Bulanan" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700">Deskripsi</label>
+        <textarea id="description" name="description" placeholder="Agenda rapat, tujuan, dll. (Sertakan tautan Zoom di sini jika ada)" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+      </div>
+
+      <div>
+        <label for="start" class="block text-sm font-medium text-gray-700">Waktu Mulai</label>
+        <input type="datetime-local" id="start" name="start" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+      </div>
+
+      <div>
+        <label for="end" class="block text-sm font-medium text-gray-700">Waktu Selesai</label>
+        <input type="datetime-local" id="end" name="end" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+      </div>
+
+      <div>
+        <label for="location" class="block text-sm font-medium text-gray-700">Lokasi Acara (Opsional)</label>
+        <input type="text" id="location" name="location" placeholder="Ruang Rapat A / Kantor Pusat" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+      </div>
+
+      <div>
+        <label for="recurrence" class="block text-sm font-medium text-gray-700">Pengulangan Acara (Opsional)</label>
+        <select id="recurrence" name="recurrence" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          <option value="none">Tidak Berulang</option>
+          <option value="daily">Harian</option>
+          <option value="weekly">Mingguan</option>
+          <option value="monthly">Bulanan</option>
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Pilih frekuensi pengulangan jika acara perlu diulang.</p>
+      </div>
+
+      <div>
+        <label for="attendeeEmails" class="block text-sm font-medium text-gray-700">Email Undangan (pisahkan dengan koma)</label>
+        <input type="text" id="attendeeEmails" name="attendeeEmails" placeholder="email1@organisasi.com, email2@organisasi.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+        <p class="mt-1 text-xs text-gray-500">Pastikan email adalah anggota organisasi Anda.</p>
+      </div>
+
+      <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        Kirim ke Kalender
+      </button>
+    </form>
+
+    <div id="result" class="mt-6 text-center text-sm font-medium text-gray-600"></div>
+    <div id="messageBox" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <p id="messageText" class="text-lg font-semibold mb-4"></p>
+            <button id="closeMessageBox" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Tutup</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="calendar-embed-container">
+    <h3 class="text-xl font-bold mb-4 text-gray-800 text-center">Google Kalender Organisasi</h3>
+    <iframe src="https://calendar.google.com/calendar/embed?height=600&wkst=2&ctz=Asia%2FJakarta&showPrint=0&src=aXNpLXNrYUBnbS5pc2ktc2thLmFjLmlk&src=ZW4uaW5kb25lc2lhbiNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%23039be5&color=%230b8043" style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+    <p class="mt-4 text-sm text-gray-600 text-center">
+      Pastikan kalender yang disematkan adalah kalender organisasi Anda dan memiliki izin "Public" atau "Share with specific people" yang sesuai.
+    </p>
+  </div>
+
+  <script>
+    const form = document.getElementById("calendarForm");
+    const result = document.getElementById("result");
+    const messageBox = document.getElementById("messageBox");
+    const messageText = document.getElementById("messageText");
+    const closeMessageBox = document.getElementById("closeMessageBox");
+
+    function showMessageBox(message) {
+        messageText.textContent = message;
+        messageBox.classList.remove("hidden");
+    }
+
+    function hideMessageBox() {
+        messageBox.classList.add("hidden");
+    }
+
+    closeMessageBox.addEventListener("click", hideMessageBox);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const data = new FormData(form);
+      const startDateTime = new Date(data.get("start"));
+      const endDateTime = new Date(data.get("end"));
+
+      if (endDateTime <= startDateTime) {
+        showMessageBox("Waktu Selesai harus setelah Waktu Mulai.");
+        return;
+      }
+
+      const attendeeEmailsRaw = data.get("attendeeEmails");
+      const attendeeEmails = attendeeEmailsRaw
+        .split(",")
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+
+      for (const email of attendeeEmails) {
+        if (!emailRegex.test(email)) {
+          showMessageBox(`Format email "${email}" tidak valid. Harap perbaiki.`);
+          return;
+        }
+      }
+
+      const location = data.get("location");
+      const recurrence = data.get("recurrence");
+
+      const payload = {
+        adminEmail: data.get("adminEmail"),
+        summary: data.get("summary"),
+        description: data.get("description"),
+        start: data.get("start"),
+        end: data.get("end"),
+        location: location,
+        recurrence: recurrence,
+        attendeeEmails: attendeeEmails
+      };
+
+      try {
+        result.textContent = "Mengirim data...";
+        
+        const response = await fetch("https://n8.isi-ska.ac.id/webhook-test/d00c9760-1f93-43d3-8fad-94d81321aa93", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const json = await response.json();
+        showMessageBox(json.message || "undangan telah terkirim ke google kalender");
+        result.textContent = "";
+        form.reset();
+      } catch (err) {
+        showMessageBox(`Gagal mengirim data: ${err.message}. Periksa koneksi atau endpoint n8n Anda.`);
+        result.textContent = "";
+      }
+    });
+  </script>
+</body>
+</html>
