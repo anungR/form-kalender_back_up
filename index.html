@@ -19,7 +19,7 @@
       border-radius: 0.5rem; /* rounded-lg */
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* shadow-lg */
       width: 100%; /* w-full */
-      max-width: 400px; /* max-w-md */
+      max-width: 576px; /* max-w-lg */
       margin: 2rem auto;
     }
     .calendar-embed-container {
@@ -128,8 +128,8 @@
       </div>
 
       <div>
-        <label for="attendeeEmails" class="block text-sm font-medium text-gray-700">Email Undangan (pisahkan dengan koma)</label>
-        <input type="text" id="attendeeEmails" name="attendeeEmails" placeholder="email1@organisasi.com, email2@organisasi.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+        <label for="attendeeEmails" class="block text-sm font-medium text-gray-700">Email Undangan (pisahkan dengan koma, spasi, atau titik koma)</label>
+        <input type="text" id="attendeeEmails" name="attendeeEmails" placeholder="email1@org.com, email2@org.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
       </div>
       
       <!-- Bagian untuk unggah file lampiran -->
@@ -182,10 +182,18 @@
       </button>
     </div>
     
-    <iframe id="calendar-iframe" src="https://calendar.google.com/calendar/embed?height=600&wkst=2&ctz=Asia%2FJakarta&showPrint=0&src=aXNpLXNrYUBnbS5pc2ktc2thLmFjLmlk&src=ZW4uaW5kb25lc2lhbiNob2xpZGF5QGdyb3VwLnYuY2FsZWVuZGFyLmNvbQ&color=%23039be5&color=%230b8043" style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+    <iframe id="calendar-iframe" title="Kalender Acara ISI Surakarta" src="https://calendar.google.com/calendar/embed?height=600&wkst=2&ctz=Asia%2FJakarta&showPrint=0&src=aXNpLXNrYUBnbS5pc2ktc2thLmFjLmlk&src=ZW4uaW5kb25lc2lhbiNob2xpZGF5QGdyb3VwLnYuY2FsZWVuZGFyLmNvbQ&color=%23039be5&color=%230b8043" style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
   <script>
+    // === Sentralisasi URL Webhook ===
+    const N8N_BASE_URL = 'https://n8.isi-ska.ac.id/webhook-test';
+    const CREATE_EVENT_URL = `${N8N_BASE_URL}/d00c9760-1f93-43d3-8fad-94d81321aa93`;
+    const UPDATE_EVENT_URL = `${N8N_BASE_URL}/update-event`;
+    const GET_EVENT_URL = `${N8N_BASE_URL}/get-event-details`;
+    const DELETE_EVENT_URL = `${N8N_BASE_URL}/delete-event`;
+    const CHECK_AVAILABILITY_URL = `${N8N_BASE_URL}/check-availability`;
+    
     // --- Inisialisasi Variabel Elemen DOM ---
     const form = document.getElementById("calendarForm");
     const formTitle = document.getElementById("formTitle");
@@ -217,6 +225,9 @@
     const checkAvailabilityButton = document.getElementById("checkAvailabilityButton");
     const availabilityResult = document.getElementById("availabilityResult");
 
+    const startInput = document.getElementById("start");
+    const endInput = document.getElementById("end");
+
     // Variabel untuk menyimpan state
     let isEditMode = false;
     let originalSubmitButtonText = submitButton.textContent;
@@ -225,14 +236,68 @@
 
     // --- Fungsi Bantuan ---
 
-    // Fungsi untuk menampilkan pesan popup
+    // PERUBAHAN BARU: Fungsi fallback untuk menyalin ke clipboard
+    function fallbackCopyTextToClipboard(text, buttonElement) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed'; // Agar tidak mengganggu layout
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = 'Tersalin!';
+            buttonElement.disabled = true;
+            setTimeout(() => {
+                buttonElement.textContent = originalText;
+                buttonElement.disabled = false;
+            }, 1500);
+        } catch (err) {
+            console.error('Gagal menyalin teks dengan metode fallback: ', err);
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = 'Gagal!';
+            setTimeout(() => {
+                buttonElement.textContent = originalText;
+            }, 2000);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    // PERUBAHAN BARU: Fungsi utama untuk menyalin teks ke clipboard (Modern + Fallback)
+    function copyToClipboard(text, buttonElement) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Metode Modern (Asynchronous)
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = 'Tersalin!';
+                buttonElement.disabled = true; // Nonaktifkan tombol sementara
+                setTimeout(() => {
+                    buttonElement.textContent = originalText;
+                    buttonElement.disabled = false;
+                }, 1500);
+            }).catch(err => {
+                console.error('Gagal menyalin teks dengan API modern: ', err);
+                // Jika gagal, coba metode fallback di bawah
+                fallbackCopyTextToClipboard(text, buttonElement); 
+            });
+        } else {
+            // Panggil metode fallback jika API clipboard tidak didukung
+            fallbackCopyTextToClipboard(text, buttonElement);
+        }
+    }
+
     function showMessageBox(message, eventId = null, eventLink = null, isConfirmation = false, confirmCallback = null) {
         messageText.textContent = message;
         eventDetailsOutput.innerHTML = "";
         customDialogButtons.innerHTML = "";
 
         if (eventId) {
-            eventDetailsOutput.innerHTML += `<p class="mt-2"><strong>ID Acara:</strong> <span>${eventId}</span></p>`;
+            let eventIdHtml = `<p class="mt-2"><strong>ID Acara:</strong> <span>${eventId}</span>`;
+            // Pemanggilan fungsi copyToClipboard tetap sama
+            eventIdHtml += ` <button onclick="copyToClipboard('${eventId}', this)" class="ml-2 px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300" title="Salin ID">Salin</button>`;
+            eventIdHtml += `</p>`;
+            eventDetailsOutput.innerHTML += eventIdHtml;
         }
         if (eventLink) {
             eventDetailsOutput.innerHTML += `<p><a href="${eventLink}" target="_blank" class="text-blue-600 hover:underline">Lihat di Google Kalender</a></p>`;
@@ -264,7 +329,6 @@
         messageBox.classList.remove("hidden");
     }
 
-    // Fungsi untuk menyembunyikan pesan popup
     function hideMessageBox() {
         messageBox.classList.add("hidden");
         eventDetailsOutput.innerHTML = ""; 
@@ -272,7 +336,6 @@
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // Fungsi untuk mereset formulir ke keadaan semula
     function resetFormToCreateMode() {
         form.reset();
         eventIdInput.value = ""; 
@@ -293,10 +356,61 @@
         result.textContent = "";
         availabilityResult.textContent = "";
     }
+    
+    function populateForm(eventData) {
+        document.getElementById("summary").value = eventData.summary || "";
+        const descriptionText = eventData.description || "";
+        document.getElementById("description").value = descriptionText;
+        document.getElementById("start").value = eventData.start ? (eventData.start.dateTime || eventData.start.date).slice(0, 16) : "";
+        document.getElementById("end").value = eventData.end ? (eventData.end.dateTime || eventData.end.date).slice(0, 16) : "";
+        document.getElementById("location").value = eventData.location || "";
+        
+        const recurrenceSelect = document.getElementById("recurrence");
+        if (eventData.recurrence && eventData.recurrence.length > 0) {
+            const rrule = eventData.recurrence[0];
+            if (rrule.includes("FREQ=DAILY")) recurrenceSelect.value = "daily";
+            else if (rrule.includes("FREQ=WEEKLY")) recurrenceSelect.value = "weekly";
+            else if (rrule.includes("FREQ=MONTHLY")) recurrenceSelect.value = "monthly";
+            else recurrenceSelect.value = "none";
+        } else {
+            recurrenceSelect.value = "none";
+        }
+
+        const attendeeEmailsInput = document.getElementById("attendeeEmails");
+        if (eventData.attendees && Array.isArray(eventData.attendees)) {
+          attendeeEmailsInput.value = eventData.attendees.map(a => a.email).join(', ');
+        } else {
+          attendeeEmailsInput.value = "";
+        }
+        
+        currentAttachmentsContainer.innerHTML = ''; 
+        removeAttachmentWrapper.classList.add('hidden');
+        removeAttachmentCheckbox.checked = false;
+        const driveLinkRegex = /https:\/\/drive\.google\.com\/(?:file\/d\/|drive\/folders\/)[a-zA-Z0-9_-]+\/[^?]+\?usp=sharing/g;
+        const matches = descriptionText.match(driveLinkRegex);
+
+        if (matches && matches.length > 0) {
+            let attachmentsHtml = '<p class="font-medium text-gray-700 mt-4">Lampiran saat ini:</p><ul class="list-disc list-inside space-y-1">';
+            matches.forEach(link => {
+                const fileName = link.split('/')[5]; // Ambil ID sebagai nama file sementara
+                attachmentsHtml += `<li><a href="${link}" target="_blank" class="text-blue-600 hover:underline">Lampiran (${fileName.substring(0,10)}...)</a></li>`;
+            });
+            attachmentsHtml += '</ul>';
+            currentAttachmentsContainer.innerHTML = attachmentsHtml;
+
+            removeAttachmentWrapper.classList.remove('hidden');
+        } else {
+            removeAttachmentWrapper.classList.add('hidden');
+        }
+    }
+
+    function clearAvailabilityStatus() {
+        availabilityResult.textContent = "";
+    }
+
 
     // --- Event Listeners ---
 
-    // Mengalihkan antara mode Buat Baru dan Edit
     toggleEditModeButton.addEventListener("click", () => {
         if (!isEditMode) {
             editModeSection.classList.remove("hidden");
@@ -312,12 +426,10 @@
         }
     });
 
-    // Tombol Batal saat mode Edit
     cancelEditModeButton.addEventListener("click", () => {
         resetFormToCreateMode();
     });
 
-    // Memuat detail acara yang ada
     loadEventButton.addEventListener("click", async () => {
         const eventIdToLoad = loadEventIdInput.value.trim();
         if (!eventIdToLoad) {
@@ -330,7 +442,7 @@
         loadEventButton.textContent = "Memuat...";
 
         try {
-            const response = await fetch(`https://n8.isi-ska.ac.id/webhook-test/get-event-details?eventId=${eventIdToLoad}`);
+            const response = await fetch(`${GET_EVENT_URL}?eventId=${eventIdToLoad}`);
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
@@ -340,34 +452,8 @@
             const eventData = await response.json();
             
             eventIdInput.value = eventIdToLoad;
-            document.getElementById("summary").value = eventData.summary || "";
-            document.getElementById("description").value = eventData.description || "";
-            document.getElementById("start").value = eventData.start ? (eventData.start.dateTime || eventData.start.date).slice(0, 16) : "";
-            document.getElementById("end").value = eventData.end ? (eventData.end.dateTime || eventData.end.date).slice(0, 16) : "";
-            document.getElementById("location").value = eventData.location || "";
             
-            const recurrenceSelect = document.getElementById("recurrence");
-            if (eventData.recurrence && eventData.recurrence.length > 0) {
-                const rrule = eventData.recurrence[0];
-                if (rrule.includes("FREQ=DAILY")) recurrenceSelect.value = "daily";
-                else if (rrule.includes("FREQ=WEEKLY")) recurrenceSelect.value = "weekly";
-                else if (rrule.includes("FREQ=MONTHLY")) recurrenceSelect.value = "monthly";
-                else recurrenceSelect.value = "none";
-            } else {
-                recurrenceSelect.value = "none";
-            }
-
-            const attendeeEmailsInput = document.getElementById("attendeeEmails");
-            if (eventData.attendees && Array.isArray(eventData.attendees)) {
-              attendeeEmailsInput.value = eventData.attendees.map(a => a.email).join(', ');
-            } else {
-              attendeeEmailsInput.value = "";
-            }
-            
-            currentAttachmentsContainer.innerHTML = '';
-            removeAttachmentWrapper.classList.add('hidden');
-            removeAttachmentCheckbox.checked = false;
-            // Menampilkan lampiran jika ada (sudah ditangani oleh link di deskripsi)
+            populateForm(eventData);
 
             showMessageBox("Detail acara berhasil dimuat.");
             result.textContent = "";
@@ -381,7 +467,6 @@
         }
     });
 
-    // Menghapus acara
     deleteEventButton.addEventListener("click", async () => {
         const eventIdToDelete = eventIdInput.value.trim();
         if (!eventIdToDelete) {
@@ -398,7 +483,7 @@
                 deleteEventButton.textContent = "Menghapus...";
 
                 try {
-                    const response = await fetch(`https://n8.isi-ska.ac.id/webhook-test/delete-event?eventId=${eventIdToDelete}`, {
+                    const response = await fetch(`${DELETE_EVENT_URL}?eventId=${eventIdToDelete}`, {
                         method: "POST" 
                     });
 
@@ -422,7 +507,6 @@
         );
     });
     
-    // Me-refresh iframe kalender
     refreshCalendarBtn.addEventListener('click', () => {
       if (calendarIframe) {
         result.textContent = "Memuat ulang kalender...";
@@ -433,7 +517,6 @@
       }
     });
 
-    // Mengecek ketersediaan jadwal
     checkAvailabilityButton.addEventListener("click", async () => {
         const start = document.getElementById("start").value;
         const end = document.getElementById("end").value;
@@ -453,7 +536,7 @@
         availabilityResult.className = "mt-2 text-center text-sm font-medium text-gray-500"; 
 
         try {
-            const response = await fetch('https://n8.isi-ska.ac.id/webhook-test/check-availability', {
+            const response = await fetch(CHECK_AVAILABILITY_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -491,7 +574,9 @@
         }
     });
 
-    // Submit formulir utama (Create atau Update)
+    startInput.addEventListener('change', clearAvailabilityStatus);
+    endInput.addEventListener('change', clearAvailabilityStatus);
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       result.textContent = "Mengirim data...";
@@ -524,7 +609,7 @@
 
       const attendeeEmailsRaw = data.get("attendeeEmails");
       const attendeeEmails = attendeeEmailsRaw
-        .split(",")
+        .split(/[\s,;]+/) 
         .map(email => email.trim())
         .filter(email => email.length > 0);
 
@@ -563,11 +648,11 @@
       
       data.append("isEditMode", isEditMode);
 
-      let webhookUrl = "https://n8.isi-ska.ac.id/webhook-test/d00c9760-1f93-43d3-8fad-94d81321aa93";
+      let webhookUrl = CREATE_EVENT_URL;
       let successMessage = "Undangan telah terkirim ke google kalender";
 
       if (isEditMode && data.get("eventId")) {
-          webhookUrl = `https://n8.isi-ska.ac.id/webhook-test/update-event`;
+          webhookUrl = UPDATE_EVENT_URL;
           successMessage = "Acara berhasil diperbarui!";
       }
 
